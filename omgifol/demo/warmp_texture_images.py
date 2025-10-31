@@ -2,6 +2,8 @@ import bpy
 import os
 import shutil
 import argparse
+import sys
+import traceback
 
 def process_folder(folder_path):
     # Ensure we are in object mode
@@ -204,16 +206,35 @@ def process_folder(folder_path):
     for collection in bpy.data.collections:
         bpy.data.collections.remove(collection)
 
+# When run under Blender, script args are everything after the '--' token.
+if '--' in sys.argv:
+    script_argv = sys.argv[sys.argv.index('--') + 1:]
+else:
+    script_argv = sys.argv[1:]
+
 # Set up command line argument parsing
 parser = argparse.ArgumentParser(description="Process 3D model files in Blender by baking textures and simplifying materials")
 parser.add_argument('main_folder_path', type=str, help="Path to the main directory containing model folders")
-args = parser.parse_args()
+args = parser.parse_args(script_argv)
 
 main_folder_path = args.main_folder_path
 
-# Process all subfolders in the main folder
-for sub_folder in os.listdir(main_folder_path):
-    sub_folder_path = os.path.join(main_folder_path, sub_folder)
-    if os.path.isdir(sub_folder_path):
-        print(f"Processing folder: {sub_folder_path}")
-        process_folder(sub_folder_path)
+# Simple logging — print to console so output is visible when redirecting Blender output
+def _log(msg):
+    print(msg)
+
+_log("warm_texture_images.py start; argv: %s" % (script_argv,))
+
+try:
+    # Process all subfolders in the main folder
+    for sub_folder in os.listdir(main_folder_path):
+        sub_folder_path = os.path.join(main_folder_path, sub_folder)
+        if os.path.isdir(sub_folder_path):
+            _log(f"Processing folder: {sub_folder_path}")
+            process_folder(sub_folder_path)
+    _log("warm_texture_images.py finished successfully")
+except Exception as e:
+    # Print traceback to stdout/stderr so it's captured by normal logging
+    traceback.print_exc()
+    print("Exception occurred:", e)
+    raise
