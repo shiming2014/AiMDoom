@@ -1,6 +1,7 @@
 import bpy
 import bmesh
 import os
+import sys
 import statistics
 import argparse
 from mathutils import Vector
@@ -84,10 +85,23 @@ def process_obj(obj_file_path):
     # Save the processed OBJ file, overwriting the original file
     bpy.ops.wm.obj_export(filepath=obj_file_path, export_selected_objects=True)
 
+# Blender injects its own command-line arguments into sys.argv. When calling
+# Blender like:
+#   blender -b --python script.py -- /path/to/folder
+# the script arguments are everything after the "--". When running the
+# script with plain Python the script args are sys.argv[1:]. Extract the
+# correct argument list here so argparse does not try to parse Blender's
+# own flags (like -b or --python).
+if '--' in sys.argv:
+    script_argv = sys.argv[sys.argv.index('--') + 1:]
+else:
+    # Running under plain python or Blender without '--'
+    script_argv = sys.argv[1:]
+
 # Set up command line argument parsing
 parser = argparse.ArgumentParser(description="Process 3D model files in Blender by cleaning and trimming them")
 parser.add_argument('folder_path', type=str, help="Path to the directory containing model folders")
-args = parser.parse_args()
+args = parser.parse_args(script_argv)
 
 # Iterate through all subfolders in the specified folder and process each OBJ file
 folder_path = args.folder_path
